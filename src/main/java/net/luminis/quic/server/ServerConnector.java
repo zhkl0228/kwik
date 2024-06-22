@@ -107,7 +107,7 @@ public class ServerConnector {
         this(socket, new TlsServerEngineFactory(keyStore, alias, keyPassword), supportedVersions, configuration, log);
     }
 
-    public int getServerListenPort() {
+    public int getListenPort() {
         return serverSocket.getLocalPort();
     }
 
@@ -166,6 +166,8 @@ public class ServerConnector {
         receiver.shutdown();
         receiverLoopThread.interrupt();
         serverSocket.close();
+        sharedExecutor.shutdownNow();
+        sharedScheduledExecutor.shutdownNow();
     }
 
     protected void receiveLoop() {
