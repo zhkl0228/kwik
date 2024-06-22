@@ -107,10 +107,6 @@ public class ServerConnector {
         this(socket, new TlsServerEngineFactory(keyStore, alias, keyPassword), supportedVersions, configuration, log);
     }
 
-    public int getListenPort() {
-        return serverSocket.getLocalPort();
-    }
-
     private ServerConnector(DatagramSocket socket, TlsServerEngineFactory tlsEngineFactory, List<Version> supportedVersions, ServerConnectionConfig configuration, Logger log) throws Exception {
         this.serverSocket = socket;
         this.tlsEngineFactory = tlsEngineFactory;
@@ -362,6 +358,7 @@ public class ServerConnector {
         private KeyStore keyStore;
         private String certificateAlias;
         private char[] privateKeyPassword;
+        private TlsServerEngineFactory tlsServerEngineFactory;
 
         public Builder withPort(int port) {
             this.port = port;
@@ -386,6 +383,11 @@ public class ServerConnector {
             return this;
         }
 
+        public Builder withTlsServerEngineFactory(TlsServerEngineFactory tlsServerEngineFactory) {
+            this.tlsServerEngineFactory = Objects.requireNonNull(tlsServerEngineFactory);
+            return this;
+        }
+
         public Builder withSupportedVersions(List<Version> supportedVersions) {
             this.supportedVersions.addAll(supportedVersions);
             return this;
@@ -407,12 +409,18 @@ public class ServerConnector {
         }
 
         public ServerConnector build() throws Exception {
-            if (certificateFile == null && keyStore == null) {
+            if (port == 0) {
+                throw new IllegalStateException("port number not set");
+            }
+            if (certificateFile == null && keyStore == null && tlsServerEngineFactory == null) {
                 throw new IllegalStateException("server certificate not set");
             }
 
             if (socket == null) {
                 socket = new DatagramSocket(port);
+            }
+            if (tlsServerEngineFactory != null) {
+                return new ServerConnector(socket, tlsServerEngineFactory, supportedVersions, configuration, log);
             }
             if (keyStore != null) {
                 return new ServerConnector(socket, keyStore, certificateAlias, privateKeyPassword, supportedVersions, configuration, log);
